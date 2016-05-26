@@ -10,9 +10,7 @@ $ git clone https://github.com/BobbyL2k/tensorflowhelper.git
 
 ## Usage
 
-```python
-import tensorflowhelper as tfh
-```
+visit https://github.com/BobbyL2k/tensorflowhelper-sample for sample code
 
 ## Credits
 
