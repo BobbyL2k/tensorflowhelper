@@ -29,14 +29,14 @@ class NeuralNetwork(Layer):
             return self.layers[0].getInputDtype()
         return None
     
-    def getOutputShape(self, *args):
+    def getOutputShape(self, sampleInput=None, *args):
         if( len(self.layers) > 0 ):
-            return self.layers[-1].getOutputShape()
+            return self.layers[-1].getOutputShape(sampleInput)
         return None
         
-    def getOutputDtype(self, *args):
+    def getOutputDtype(self, sampleInput=None, *args):
         if( len(self.layers) > 0 ):
-            return self.layers[-1].getOutputDtype()
+            return self.layers[-1].getOutputDtype(sampleInput)
         return None
             
     def connect(self, prevLayerResult):
@@ -62,21 +62,21 @@ class Life(object):
         self.tfvCost                   = None
         self.tfvTrainer                = None
         
-    def connectNeuralNetwork(self, sampleInput, sampleOutput=None, train=False ):
+    def connectNeuralNetwork(self, sampleInput, sampleOutput=None, willTrain=False ):
         self.tfvInputLayerPlaceholder = tf.placeholder( 
             sampleInput.dtype, 
             sampleInput.shape )
             
-        self.neuralNetwork.validatieInput(self.tfvInputLayerPlaceholder)
+        self.neuralNetwork.validateInput(self.tfvInputLayerPlaceholder)
         
         self.tfvResult_pipe = self.neuralNetwork.connect( self.tfvInputLayerPlaceholder )
         
-        if(train):
+        if(willTrain):
             self.tfvOutputLayerPlaceholder = tf.placeholder( 
                 sampleOutput.dtype, 
                 sampleOutput.shape )
                 
-            self.neuralNetwork.validatieOutput( self.tfvOutputLayerPlaceholder )
+            self.neuralNetwork.validateOutput( self.tfvOutputLayerPlaceholder, sampleTfInput=self.tfvInputLayerPlaceholder )
             
             self.tfvCost = self.costFunction( self.tfvResult_pipe, self.tfvOutputLayerPlaceholder )
             
