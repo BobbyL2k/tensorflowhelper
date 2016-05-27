@@ -2,17 +2,18 @@ import tensorflow as tf
 from enum import Enum
 from . import utilities as tfhu
 
-# class init():
+class init():
 #     def zeros_variable(shape):
 #         return tf.Variable(tf.zeros(shape))
         
-#     def weight_variable(shape):
-#         initial = tf.truncated_normal(shape, stddev=0.1)
-#         return tf.Variable(initial)
+    def weight_variable(shape):
+        print("weight_variable",shape)
+        initial = tf.truncated_normal(shape, stddev=0.1)
+        return tf.Variable(initial)
 
-#     def bias_variable(shape):
-#         initial = tf.constant(0.1, shape=shape)
-#         return tf.Variable(initial)
+    def bias_variable(shape):
+        initial = tf.constant(0.1, shape=shape)
+        return tf.Variable(initial)
 
 #     def conv2d(x, W):
 #         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
@@ -130,10 +131,15 @@ def OpLayer(func, shape=None, dtype=None, name=None):
         })(shape=shape, dtype=dtype, name=name)       
         
 class FeedForwardLayer(Layer):
-    def __init__(self, features_out, features_in=None):
+    
+    def __init__(self, features_out, features_in=None, dtype=None, name=None):
         self.features_out = features_out
         self.features_in = features_in
+        self.dtype = dtype
+        self.name = name
+        
         self.varsCreated = False
+        self.features_in_is_set = features_in != None;
         
     # def getOutputShape(self, *args):
     #     return self.shape
@@ -141,16 +147,34 @@ class FeedForwardLayer(Layer):
     # def getOutputDtype(self, *args):
     #     return self.dtype
         
-    # def setInput(self, features_in):
-    #     self.features_in = features_in
+    def setInput(self, features_in):
+        if( self.features_in_is_set and self.features_in == features_in ):
+            raise tfhu.TFHError(
+                "{} setInput".format(self.name) ,
+                "features_in is set twice and do not Match",
+                "Previous Value : {}".format(self.features_in),
+                "Current Value : {}".format(features_in))
+        self.features_in = features_in
         
     def createVars(self):
-        if( not self.createVars ):
+        if( not self.varsCreated ):
             self.varsCreated = True
+            
+            # print(self.features_in, self.features_out)
             
             self.weight = init.weight_variable([self.features_in, self.features_out])
             self.bias = init.bias_variable([self.features_out])
         
     def connect(self, prevLayerResult):
+        self.setInput(prevLayerResult._shape_as_list()[1])
+        Layer.validateTFInput(self.name, prevLayerResult, shape=[None, self.features_in], dtype=self.dtype)
         self.createVars()
         return tf.matmul(prevLayerResult, self.weight) + self.bias
+        
+class ReshapeLayer(Layer):
+    def __init__(self, shape, name=None):
+        self.shape = shape
+        self.name = name
+        
+    def connect(self, prevLayerResult):
+        return tf.reshape(prevLayerResult, self.shape)
