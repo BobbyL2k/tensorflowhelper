@@ -22,8 +22,10 @@ def validate(where, describe_elem, expect_elem, got_elem):
         return _validate(where, describe_elem, expect_elem, got_elem)
 
 def _validate(where, describe_elem, expect_elem, got_elem):
-    if( expect_elem != None and got_elem != None and expect_elem != got_elem ):
-        if( isinstance(expect_elem,list) and isinstance(expect_elem,list) and len(expect_elem) == len(got_elem)):
+    if( expect_elem != None and 
+        # got_elem != None and 
+        (type(expect_elem) is type(got_elem) and expect_elem != got_elem) ):
+        if( isinstance(expect_elem,(list)) and isinstance(got_elem,(list)) and len(expect_elem) == len(got_elem)):
             try:
                 for exp, got in zip(expect_elem, got_elem):
                     _validate(where, describe_elem, exp, got)

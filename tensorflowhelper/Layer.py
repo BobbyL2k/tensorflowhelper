@@ -42,26 +42,29 @@ class Layer(object):
         """Overloaded for Layer.validateInput()"""
         raise NotImplementedError
     
-    def getOutputShape(self, sampleTfInput=None, *args):
-        """Overloaded for Layer.validateOutput()"""
-        raise NotImplementedError
+    # def getOutputShape(self, sampleTfInput=None, *args):
+    #     """Overloaded for Layer.validateOutput()"""
+    #     raise NotImplementedError
         
-    def getOutputDtype(self, sampleTfInput=None, *args):
-        """Overloaded for Layer.validateOutput()"""
-        raise NotImplementedError
+    # def getOutputDtype(self, sampleTfInput=None, *args):
+    #     """Overloaded for Layer.validateOutput()"""
+    #     raise NotImplementedError
             
     def connect(self, *args):
         raise NotImplementedError
         
-    def validateInput(self, layerInput):
-        """Check if the Layer's shape and type match with ths input's"""
-        tfhu.validate(self.name, "Tensor shape", self.getInputShape(), layerInput._shape_as_list())
-        tfhu.validate(self.name, "Tensor dtype", self.getInputDtype(), layerInput.dtype)
+    def validateTFInput(name, tfLayerInput, shape, dtype):
+        tfhu.validate(name, "Tensor shape", shape, tfLayerInput._shape_as_list())
+        tfhu.validate(name, "Tensor dtype", dtype, tfLayerInput.dtype)
         
-    def validateOutput(self, layerOutput, sampleTfInput=None):
-        """Check if the Layer's shape and type match with ths Output's"""
-        tfhu.validate(self.name, "Tensor shape", self.getOutputShape(sampleTfInput), layerOutput._shape_as_list())
-        tfhu.validate(self.name, "Tensor dtype", self.getOutputDtype(sampleTfInput), layerOutput.dtype)
+    def validateInput(self, tfLayerInput):
+        """Check if the Layer's shape and type match with ths input's"""
+        Layer.validateTFInput(self.name, tfLayerInput, shape=self.getInputShape(), dtype=self.getInputDtype())
+        
+    # def validateOutput(self, layerOutput, sampleTfInput=None):
+    #     """Check if the Layer's shape and type match with ths Output's"""
+    #     tfhu.validate(self.name, "Tensor shape", self.getOutputShape(sampleTfInput), layerOutput._shape_as_list())
+    #     tfhu.validate(self.name, "Tensor dtype", self.getOutputDtype(sampleTfInput), layerOutput.dtype)
 
 class ValidationLayer(Layer):
     def __init__(self, shape=None, dtype=None, name=None):
@@ -75,11 +78,11 @@ class ValidationLayer(Layer):
     def getInputDtype(self, *args):
         return self.dtype
     
-    def getOutputShape(self, *args):
-        return self.shape
+    # def getOutputShape(self, *args):
+    #     return self.shape
         
-    def getOutputDtype(self, *args):
-        return self.dtype
+    # def getOutputDtype(self, *args):
+    #     return self.dtype
         
     def connect(self, prevLayerResult):
         self.validateInput(prevLayerResult)
@@ -102,28 +105,29 @@ class _OpLayer(Layer):
     def getInputDtype(self, *args):
         return self.dtype
     
-    def getOutputShape(self, sampleTfInput):
-        if(sampleTfInput == None):
-            return self.shape
-        else:
-            return sampleTfInput._shape_as_list();
+    # def getOutputShape(self, sampleTfInput):
+    #     if(sampleTfInput == None):
+    #         return self.shape
+    #     else:
+    #         return sampleTfInput._shape_as_list();
         
-    def getOutputDtype(self, sampleTfInput):
-        if(sampleTfInput == None):
-            return self.dtype
-        else:
-            return sampleTfInput.dtype
+    # def getOutputDtype(self, sampleTfInput):
+    #     if(sampleTfInput == None):
+    #         return self.dtype
+    #     else:
+    #         return sampleTfInput.dtype
         
     def connect(self, prevLayerResult):
-        raise NotImplementedError
+        self.validateInput(prevLayerResult)
+        return self._connect(prevLayerResult)
 
-def OpLayer(func, name=None):
+def OpLayer(func, shape=None, dtype=None, name=None):
     return type(
         "CustomOpeartionLayer", 
         (_OpLayer,object), 
         {
-            "connect": lambda self, input: func(input) 
-        })()       
+            "_connect": lambda self, input: func(input) 
+        })(shape=shape, dtype=dtype, name=name)       
         
 class FeedForwardLayer(Layer):
     def __init__(self, features_out, features_in=None):
@@ -131,11 +135,11 @@ class FeedForwardLayer(Layer):
         self.features_in = features_in
         self.varsCreated = False
         
-    def getOutputShape(self, *args):
-        return self.shape
+    # def getOutputShape(self, *args):
+    #     return self.shape
         
-    def getOutputDtype(self, *args):
-        return self.dtype
+    # def getOutputDtype(self, *args):
+    #     return self.dtype
         
     # def setInput(self, features_in):
     #     self.features_in = features_in
