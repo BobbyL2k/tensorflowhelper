@@ -65,12 +65,6 @@ class ValidationLayer(Layer):
         
     def getInputDtype(self, *args):
         return self.dtype
-    
-    # def getOutputShape(self, *args):
-    #     return self.shape
-        
-    # def getOutputDtype(self, *args):
-    #     return self.dtype
         
     def connect(self, prevLayerResult):
         self.validateInput(prevLayerResult)
@@ -117,7 +111,7 @@ class FeedForwardLayer(Layer):
         self.features_in_is_set = features_in != None;
         
     def setInput(self, features_in):
-        if( self.features_in_is_set and self.features_in == features_in ):
+        if( self.features_in_is_set and self.features_in != features_in ):
             raise tfhu.TFHError(
                 "{} setInput".format(self.name) ,
                 "features_in is set twice and do not Match",
