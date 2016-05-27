@@ -30,11 +30,10 @@ class init():
 #     zero = 1
     
 class Layer(object):
-    """
+    """Layer
     Abstract Class
     Layer with Inputs and Outputs
     """
-    
     def getInputShape(self, *args):
         """Overloaded for Layer.validateInput()"""
         raise NotImplementedError
@@ -55,6 +54,13 @@ class Layer(object):
         Layer.validateTFInput(self.name, tfLayerInput, shape=self.getInputShape(), dtype=self.getInputDtype())
 
 class ValidationLayer(Layer):
+    """ValidationLayer is used to check the current
+    shape and dtype is matched with the your expectation
+    
+    shape -- shape of the expected tensor (default None --> matches everything)
+    dtype -- data type of the expected tensor (default None --> matches everything)
+    name  -- is for error message
+    """
     def __init__(self, shape=None, dtype=None, name=None):
         self.shape = shape
         self.dtype = dtype
@@ -92,6 +98,18 @@ class _OpLayer(Layer):
         return self._connect(prevLayerResult)
 
 def OpLayer(func, shape=None, dtype=None, name=None):
+    """OpLayer class Factory
+    Layer for doing Native TensorFlow Operations
+    func  -- is used to overload the 'connect' method
+             no validation code is required as it is done automatically
+    shape -- shape of the input tensor (default None --> matches everything)
+             is used to do vaidation since TFH cannot automatically make sense
+             of 'func'
+    dtype -- data type of the input tensor (default None --> matches everything)
+             is used to do vaidation since TFH cannot automatically make sense
+             of 'func'
+    name  -- is for error message
+    """
     return type(
         "CustomOpeartionLayer", 
         (_OpLayer,object), 
@@ -100,7 +118,16 @@ def OpLayer(func, shape=None, dtype=None, name=None):
         })(shape=shape, dtype=dtype, name=name)       
         
 class FeedForwardLayer(Layer):
+    """FeedForward Neural Network Layer
+    https://en.wikipedia.org/wiki/Feedforward_neural_network
     
+    features_in  -- number of neuron (or features) in the previous layer
+                    (default None --> will automatically match the previous layer)
+    features_out -- number of neuron in this layer (number of features outputting)
+    dtype        -- data type of the input/output tensor 
+                    (default None --> input : matches everything, output : matches input)
+    name         -- is for error message
+    """
     def __init__(self, features_out, features_in=None, dtype=None, name=None):
         self.features_out = features_out
         self.features_in = features_in
@@ -135,6 +162,13 @@ class FeedForwardLayer(Layer):
         return tf.matmul(prevLayerResult, self.weight) + self.bias
         
 class ReshapeLayer(Layer):
+    """Reshape Layer
+    uses tf.reshape(tensor, shape, name=None)
+        tensor -- loaded with the layer input
+        shape  -- from shape parameter
+        
+    shape -- shape of the output to resize to
+    """
     def __init__(self, shape, name=None):
         self.shape = shape
         self.name = name
