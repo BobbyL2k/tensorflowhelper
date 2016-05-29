@@ -3,41 +3,42 @@ from .Error import TFHError
 DEBUG = True
 
 def validate(where, describe_elem, expect_elem, got_elem):
-    if( DEBUG ):
+    if DEBUG:
         try:
-            result = _validate(where, describe_elem, expect_elem, got_elem)
-            print("PASSED Validation in {} of {} of {} and {}".format(where, describe_elem, expect_elem, got_elem))
-            return result
-        except TFHError:
-            print("FAILED Validation in {} of {} of {} and {}".format(where, describe_elem, expect_elem, got_elem))
-            pass
+            _validate(where, describe_elem, expect_elem, got_elem)
+            print("PASSED Validation in {} of {} of {} and {}".format(
+                where, describe_elem, expect_elem, got_elem))
 
-        raise TFHError(
-                where,
-                "{} is not compatible".format(describe_elem),
-                "Expect {} : {}".format(describe_elem, repr(expect_elem)),
-                "Got {} : {}".format(describe_elem, repr(got_elem)) )
+        except TFHError as tfh_error:
+            print("FAILED Validation in {} of {} of {} and {}".format(
+                where, describe_elem, expect_elem, got_elem))
+            raise tfh_error
 
     else:
-        return _validate(where, describe_elem, expect_elem, got_elem)
+        _validate(where, describe_elem, expect_elem, got_elem)
 
 def _validate(where, describe_elem, expect_elem, got_elem):
-    if( expect_elem != None and
-        # got_elem != None and
-        (type(expect_elem) is type(got_elem) and expect_elem != got_elem) ):
-        if( isinstance(expect_elem,(list)) and isinstance(got_elem,(list)) and len(expect_elem) == len(got_elem)):
-            try:
-                for exp, got in zip(expect_elem, got_elem):
-                    _validate(where, describe_elem, exp, got)
-                return
-            except TFHError:
-                pass
+    pass_validation = True
 
+    if expect_elem != None:
+        if isinstance(expect_elem, (list, tuple)) and isinstance(got_elem, (list, tuple)):
+            if len(expect_elem) == len(got_elem):
+                try:
+                    for exp, got in zip(expect_elem, got_elem):
+                        _validate(where, describe_elem, exp, got)
+                except TFHError:
+                    pass_validation = False
+            else: pass_validation = False
+
+        elif type(expect_elem) is type(got_elem) and expect_elem != got_elem:
+            pass_validation = False
+
+    if not pass_validation:
         raise TFHError(
-                where,
-                "{} is not compatible".format(describe_elem),
-                "Expect {} : {}".format(describe_elem, repr(expect_elem)),
-                "Got {} : {}".format(describe_elem, repr(got_elem)) )
+            where,
+            "{} is not compatible".format(describe_elem),
+            "Expect {} : {}".format(describe_elem, repr(expect_elem)),
+            "Got {} : {}".format(describe_elem, repr(got_elem)))
 
 def validate_tf_input(name, tf_layer_input, shape, dtype):
     """Validate if the TensorFlow variable is compatible with

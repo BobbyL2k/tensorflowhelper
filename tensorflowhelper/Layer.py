@@ -6,8 +6,6 @@ from . import utilities as tfhu
 
 class Initializer():
     """Collection of Initializer Functions"""
-#     def zeros_variable(shape):
-#         return tf.Variable(tf.zeros(shape))
 
     @staticmethod
     def weight_variable(shape):
@@ -26,16 +24,19 @@ class Initializer():
         initial = tf.constant(0.1, shape=shape)
         return tf.Variable(initial)
 
-#     def conv2d(x, W):
-#         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
+    # def zeros_variable(shape):
+    #     return tf.Variable(tf.zeros(shape))
 
-#     def max_pool_2x2(x):
-#         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
-#             strides=[1, 2, 2, 1], padding='SAME')
+    # def conv2d(x, W):
+    #     return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-#     def max_pool_4x4(x):
-#         return tf.nn.max_pool(x, ksize=[1, 4, 4, 1],
-#             strides=[1, 4, 4, 1], padding='SAME')
+    # def max_pool_2x2(x):
+    #     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
+    #         strides=[1, 2, 2, 1], padding='SAME')
+
+    # def max_pool_4x4(x):
+    #     return tf.nn.max_pool(x, ksize=[1, 4, 4, 1],
+    #         strides=[1, 4, 4, 1], padding='SAME')
 
 # class initType(Enum):
 #     zero = 1
