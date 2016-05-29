@@ -1,2 +1,2 @@
-from .Error import * 
+from .Error import *
 from .tools import *

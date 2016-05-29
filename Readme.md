@@ -23,9 +23,10 @@ visit https://github.com/BobbyL2k/tensorflowhelper-sample for sample code
 
 ## To Do List
 
+* Save and Load models
 * High level models
   * Convolutional Neural Network
-* Save and Load models
+* Visualizing Convolutional Neural Network
   
 ## Credits
 

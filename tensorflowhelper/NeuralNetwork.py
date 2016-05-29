@@ -1,92 +1,156 @@
 import tensorflow as tf
-import collections
 from . import utilities as tfhu
 from . import Layer
+from . import ValidatableLayer
 
 
-class NeuralNetwork(Layer):
-    def __init__(self, layers = [], name = None):
+class NeuralNetwork(ValidatableLayer):
+    def __init__(self, layers=None, name=None):
+
+        ValidatableLayer.__init__(self, name)
+
+        if layers is None:
+            layers = []
+
         self.layers = layers
-        self.name = name
-        
-        self.addNameToLayers(name)
-                
-    def addNameToLayers(self, name):
+
+        self.add_name_to_layers(name)
+
+    def add_name_to_layers(self, name):
+        """Adds name to all of the NeuralNetwork/Layers inside the NeuralNetwork"""
         for layer in self.layers:
             if isinstance(layer, NeuralNetwork):
-                layer.addNameToLayers(str(name))
+                layer.add_name_to_layers(str(name))
             else:
                 layer.name = "{} {}".format(str(name), str(layer.name))
-        
-        
-    def getInputShape(self, *args):
-        if( len(self.layers) > 0 ):
-            return self.layers[0].getInputShape()
+
+
+    def get_input_shape(self, *args):
+        if len(self.layers) > 0:
+            return self.layers[0].get_input_shape()
         return None
-        
-    def getInputDtype(self, *args):
-        if( len(self.layers) > 0 ):
-            return self.layers[0].getInputDtype()
+
+    def get_input_dtype(self, *args):
+        if len(self.layers) > 0:
+            return self.layers[0].get_input_dtype()
         return None
-            
-    def connect(self, prevLayerResult):
+
+    def connect(self, prev_layer_result):
         for layer in self.layers:
-            prevLayerResult = layer.connect(prevLayerResult)
-        return prevLayerResult
+            prev_layer_result = layer.connect(prev_layer_result)
+        return prev_layer_result
 
 class CostFunction:
-    def meanSqErr(hypo, y):
-        return tf.reduce_mean( tf.square( hypo - y ) )
-    def crossEntropy(hypo, y):
-        return tf.reduce_mean( -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]) )
+    """Collection of Cost Functions to be minimized"""
+    @staticmethod
+    def mean_sq_err(hypo, actual_value):
+        """Calculate Mean Square Error
+        Args:
+            hypo: TensorFlow variable of the hypothesis
+            actual_value: TensorFlow variable of the expected value
+        Returns:
+            TensorFlow variable of the Mean Square Error
+        """
+        return tf.reduce_mean(tf.square(hypo - actual_value))
+    @staticmethod
+    def cross_entropy(hypo, actual_value):
+        """Calculate Cross Entropy
+        Args:
+            hypo: TensorFlow variable of the hypothesis
+            actual_value: TensorFlow variable of the expected value
+        Returns:
+            TensorFlow variable of the Cross Entropy
+        """
+        return tf.reduce_mean(
+            -tf.reduce_sum(actual_value * tf.log(hypo), reduction_indices=[1]))
 
 class Life(object):
-    def __init__(self, neuralNetwork, costFunction=CostFunction.meanSqErr, optimizer=tf.train.AdamOptimizer(0.0001)):
-        self.neuralNetwork = neuralNetwork
+    """NeuralNetwork Manager
+    Life helps with session management, connecting, feeding, and training NeuralNetworks
+    """
+    def __init__(self,
+                 neural_network,
+                 cost_function=CostFunction.mean_sq_err,
+                 optimizer=tf.train.AdamOptimizer(0.0001)):
+
         self.session = tf.Session()
-        self.costFunction = costFunction
+
+        self.neural_network = neural_network
+        self.cost_function = cost_function
         self.optimizer = optimizer
+
         self.tfvInputLayerPlaceholder  = None
         self.tfvOutputLayerPlaceholder = None
         self.tfvResult_pipe            = None
         self.tfvCost                   = None
         self.tfvTrainer                = None
-        
-    def connectNeuralNetwork(self, sampleInput, sampleOutput=None, willTrain=False ):
-        self.tfvInputLayerPlaceholder = tf.placeholder( 
-            sampleInput.dtype, 
-            sampleInput.shape )
-            
-        self.neuralNetwork.validateInput(self.tfvInputLayerPlaceholder)
-        
-        self.tfvResult_pipe = self.neuralNetwork.connect( self.tfvInputLayerPlaceholder )
-        
-        if(willTrain):
-            Layer.validateTFInput("Life Output", self.tfvResult_pipe, shape=sampleOutput.shape, dtype=sampleOutput.dtype)
-            
-            self.tfvOutputLayerPlaceholder = tf.placeholder( 
-                sampleOutput.dtype, 
-                sampleOutput.shape )
-                
-            self.tfvCost = self.costFunction( self.tfvResult_pipe, self.tfvOutputLayerPlaceholder )
-            
-            self.tfvTrainer = self.optimizer.minimize( self.tfvCost )
-        
-    def initVar(self):
+
+    def connect_neural_network(self, sample_input, sample_output=None, will_train=False):
+        """Connects the NeuralNetworks inside to a TensorFLow placeholder variable
+        Args:
+            sample_input: A sample of the input, the dtype and shape is
+                          used to form the TensorFlow placeholder variable
+            sample_output: A sample of the ouput for running the hypothesis against,
+                           the dtype and shape is used to form the TensorFlow
+                           placeholder variable, this is required if will_train=True
+                           (default None)
+            will_train: True if Life will be used to train in the future
+        Returns:
+            None
+        """
+        self.tfvInputLayerPlaceholder = tf.placeholder(
+            sample_input.dtype,
+            sample_input.shape)
+
+        self.neural_network.validate_input(self.tfvInputLayerPlaceholder)
+
+        self.tfvResult_pipe = self.neural_network.connect(self.tfvInputLayerPlaceholder)
+
+        if will_train:
+            tfhu.validate_tf_input(
+                "Life Output",
+                self.tfvResult_pipe,
+                shape=sample_output.shape,
+                dtype=sample_output.dtype)
+
+            self.tfvOutputLayerPlaceholder = tf.placeholder(
+                sample_output.dtype,
+                sample_output.shape)
+
+            self.tfvCost = self.cost_function(self.tfvResult_pipe, self.tfvOutputLayerPlaceholder)
+
+            self.tfvTrainer = self.optimizer.minimize(self.tfvCost)
+
+    def init_var(self):
+        """Initialize All Variables
+        calls tf.initialize_all_variables() for the self.session"""
         self.session.run(tf.initialize_all_variables())
-        
-    def feed(self, inputLayerValue):
-        return self.session.run( self.tfvResult_pipe, feed_dict={self.tfvInputLayerPlaceholder: inputLayerValue} )
-        
-    def train(self, inputLayerValue, outputLayerValue, processList=[]):
-    
-        processList.append(self.tfvCost)
-        processList.append(self.tfvTrainer)
-    
-        result = self.session.run(processList, feed_dict={
-            self.tfvInputLayerPlaceholder : inputLayerValue, 
-            self.tfvOutputLayerPlaceholder: outputLayerValue})
-            
+
+    def feed(self, input_layer_value):
+        """Feed NeuralNetwork with input
+        Args:
+            input_layer_value: input for the NeuralNetwork
+        Returns:
+            Output from the NeuralNetwork
+        """
+        return self.session.run(
+            self.tfvResult_pipe,
+            feed_dict={
+                self.tfvInputLayerPlaceholder: input_layer_value})
+
+    def train(self, input_layer_value, output_layer_value, process_list=None):
+        """Train NeuralNetwork assigned with input and expected output"""
+
+        if process_list is None:
+            process_list = []
+
+        process_list.append(self.tfvCost)
+        process_list.append(self.tfvTrainer)
+
+        result = self.session.run(process_list, feed_dict={
+            self.tfvInputLayerPlaceholder : input_layer_value,
+            self.tfvOutputLayerPlaceholder: output_layer_value})
+
         result.pop() # Remove None from tfvTrainer
-            
+
         return result
