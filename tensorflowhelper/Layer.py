@@ -45,6 +45,9 @@ class Layer(object):
     """Layer
     Abstract Class
     Layer with Inputs and Outputs
+
+    Args:
+        name -- is for error message
     """
     def __init__(self, name):
         self.name = name
@@ -53,11 +56,30 @@ class Layer(object):
         """Connects the input to tha Layer and returns the output"""
         raise NotImplementedError
 
+    def get_tensorflow_variables(self):
+        """Returns the all the TensorFlow variables that needs to be saved and loaded"""
+        raise NotImplementedError
+
+    def is_initialized_in(self, session):
+        """Check if the TensorFlow variables are initialized"""
+        try:
+            session.run(tf.assert_variables_initialized(self.get_tensorflow_variables()))
+            return True
+        except tf.errors.FailedPreconditionError:
+            return False
+
+    def initialize_in(self, session):
+        """Initialize TensorFlow variables in the provided session"""
+        session.run(tf.initialize_variables(self.get_tensorflow_variables()))
+
 class ValidatableLayer(Layer):
     """Validatable Layer
     Abstract Class
     Layer with Inputs and Outputs that can be validated with input
     by using ValidatableLayer.validate_input
+
+    Args:
+        name -- is for error message
     """
     def __init__(self, name):
         Layer.__init__(self, name)
@@ -82,9 +104,10 @@ class ValidationLayer(ValidatableLayer):
     """ValidationLayer is used to check the current
     shape and dtype is matched with the your expectation
 
-    shape -- shape of the expected tensor (default None --> matches everything)
-    dtype -- data type of the expected tensor (default None --> matches everything)
-    name  -- is for error message
+    Args:
+        shape -- shape of the expected tensor (default None --> matches everything)
+        dtype -- data type of the expected tensor (default None --> matches everything)
+        name  -- is for error message
     """
     def __init__(self, shape=None, dtype=None, name=None):
         ValidatableLayer.__init__(self, name)
@@ -101,22 +124,28 @@ class ValidationLayer(ValidatableLayer):
         self.validate_input(prevLayerResult)
         return prevLayerResult
 
+    def get_tensorflow_variables(self):
+        return []
+
 class OpLayer(ValidatableLayer):
     """Opeation Layer
     Layer for doing Native TensorFlow Operations
-    func  -- is used to overload the '_connect' method
-             no validation code is required as it is done automatically
-    shape -- shape of the input tensor (default None --> matches everything)
-             is used to do vaidation since TFH cannot automatically make sense
-             of 'func'
-    dtype -- data type of the input tensor (default None --> matches everything)
-             is used to do vaidation since TFH cannot automatically make sense
-             of 'func'
-    name  -- is for error message
+
+    Args:
+        func  -- is used to overload the '_connect' method
+                no validation code is required as it is done automatically
+        shape -- shape of the input tensor (default None --> matches everything)
+                is used to do vaidation since TFH cannot automatically make sense
+                of 'func'
+        dtype -- data type of the input tensor (default None --> matches everything)
+                is used to do vaidation since TFH cannot automatically make sense
+                of 'func'
+        name  -- is for error message
     """
-    def __init__(self, func, shape=None, dtype=None, name=None):
+    def __init__(self, func, tf_variables, shape=None, dtype=None, name=None):
         ValidatableLayer.__init__(self, name)
         self._connect = func
+        self.tf_variables = tf_variables
         self.shape = shape
         self.dtype = dtype
 
@@ -130,16 +159,20 @@ class OpLayer(ValidatableLayer):
         self.validate_input(prevLayerResult)
         return self._connect(prevLayerResult)
 
+    def get_tensorflow_variables(self):
+        return self.tf_variables
+
 class FeedForwardLayer(Layer):
     """FeedForward Neural Network Layer
     https://en.wikipedia.org/wiki/Feedforward_neural_network
 
-    features_in  -- number of neuron (or features) in the previous layer
-                    (default None --> will automatically match the previous layer)
-    features_out -- number of neuron in this layer (number of features outputting)
-    dtype        -- data type of the input/output tensor
-                    (default None --> input : matches everything, output : matches input)
-    name         -- is for error message
+    Args:
+        features_in  -- number of neuron (or features) in the previous layer
+                        (default None --> will automatically match the previous layer)
+        features_out -- number of neuron in this layer (number of features outputting)
+        dtype        -- data type of the input/output tensor
+                        (default None --> input : matches everything, output : matches input)
+        name         -- is for error message
     """
     def __init__(self, features_out, features_in=None, dtype=None, name=None):
         Layer.__init__(self, name)
@@ -147,17 +180,18 @@ class FeedForwardLayer(Layer):
         self.features_in = features_in
         self.dtype = dtype
 
-        self.vars_created = False
-        self.weight = None
-        self.bias = None
-        self.features_in_is_set = features_in != None
+        self.features_in_is_set = features_in is not None
+
+        self.tf_vars_created = False
+        self.tf_weight = None
+        self.tf_bias = None
 
     def set_input(self, features_in):
         """Set the number of features_in
         Args:
-            features_in: number of input features
+            features_in -- number of input features
         Raises:
-            TFHError: if this method is called twice
+            TFHError    -- if this method is called twice
         """
         if self.features_in_is_set and self.features_in != features_in:
             raise tfhu.TFHError(
@@ -167,13 +201,13 @@ class FeedForwardLayer(Layer):
                 "Current Value : {}".format(features_in))
         self.features_in = features_in
 
-    def create_vars(self):
+    def _create_tf_vars(self):
         """Create TensorFlow Placeholder variable"""
-        if not self.vars_created:
-            self.vars_created = True
+        if not self.tf_vars_created:
+            self.tf_vars_created = True
 
-            self.weight = Initializer.weight_variable([self.features_in, self.features_out])
-            self.bias = Initializer.bias_variable([self.features_out])
+            self.tf_weight = Initializer.weight_variable([self.features_in, self.features_out])
+            self.tf_bias = Initializer.bias_variable([self.features_out])
 
     def connect(self, tf_input):
         self.set_input(tf_input._shape_as_list()[1])
@@ -182,8 +216,14 @@ class FeedForwardLayer(Layer):
             tf_input,
             shape=[None, self.features_in],
             dtype=self.dtype)
-        self.create_vars()
-        return tf.matmul(tf_input, self.weight) + self.bias
+        self._create_tf_vars()
+        return tf.matmul(tf_input, self.tf_weight) + self.tf_bias
+
+    def get_tensorflow_variables(self):
+        return [
+            self.tf_weight,
+            self.tf_bias
+        ]
 
 class ReshapeLayer(Layer):
     """Reshape Layer
@@ -191,7 +231,8 @@ class ReshapeLayer(Layer):
         tensor -- loaded with the layer input
         shape  -- from shape parameter
 
-    shape -- shape of the output to resize to
+    Args:
+        shape  -- shape of the output to resize to
     """
     def __init__(self, shape, name=None):
         Layer.__init__(self, name)
@@ -199,3 +240,6 @@ class ReshapeLayer(Layer):
 
     def connect(self, prevLayerResult):
         return tf.reshape(prevLayerResult, self.shape)
+
+    def get_tensorflow_variables(self):
+        return []

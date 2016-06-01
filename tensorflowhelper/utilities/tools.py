@@ -20,7 +20,7 @@ def validate(where, describe_elem, expect_elem, got_elem):
 def _validate(where, describe_elem, expect_elem, got_elem):
     pass_validation = True
 
-    if expect_elem != None:
+    if expect_elem is not None:
         if isinstance(expect_elem, (list, tuple)) and isinstance(got_elem, (list, tuple)):
             if len(expect_elem) == len(got_elem):
                 try:
