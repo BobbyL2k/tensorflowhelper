@@ -21,7 +21,7 @@ class NeuralNetwork(ValidatableLayer):
             if isinstance(layer, NeuralNetwork):
                 layer._add_name_to_layers(str(name))
             else:
-                layer.name = "{} {}".format(str(name), str(layer.name))
+                layer.name = "{}-{}".format(str(name), str(layer.name))
 
 
     def get_input_shape(self, *args):
@@ -137,9 +137,9 @@ class Life(object):
             (default None --> all variables)
         """
         if var_list is None:
-            self.session.run(tf.initialize_all_variables())
-        else:
-            self.session.run(tf.initialize_variables(var_list))
+            var_list = self.neural_network.get_tensorflow_variables()
+
+        tfhu.safe_initialize_in(var_list, self.session)
 
     def init_network(self, network_list=None):
         """Initialize Variables inside a network/layer
@@ -168,6 +168,7 @@ class Life(object):
             network = self.neural_network
 
         tf_var_list = network.get_tensorflow_variables()
+        tfhu.warn_if_initialized(tf_var_list, self.session)
         saver = tf.train.Saver(Life._create_saver_dict(tf_var_list))
         saver.restore(self.session, path)
         print("Network {} loaded from file: {}".format(network.name, path))

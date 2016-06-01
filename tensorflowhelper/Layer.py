@@ -8,21 +8,21 @@ class Initializer():
     """Collection of Initializer Functions"""
 
     @staticmethod
-    def weight_variable(shape):
+    def weight_variable(shape, name=None):
         """Create weight variables of given shape
         The weight variables are randomized with SD of 0.1, making it
         sutable for Neural Networks
         """
         initial = tf.truncated_normal(shape, stddev=0.1)
-        return tf.Variable(initial)
+        return tf.Variable(initial, name="{}-weight".format(name))
 
     @staticmethod
-    def bias_variable(shape):
+    def bias_variable(shape, name=None):
         """Create bias variables of given shape
         The baia variables are initialized with 0.1
         """
         initial = tf.constant(0.1, shape=shape)
-        return tf.Variable(initial)
+        return tf.Variable(initial, name="{}-bias".format(name))
 
     # def zeros_variable(shape):
     #     return tf.Variable(tf.zeros(shape))
@@ -70,7 +70,9 @@ class Layer(object):
 
     def initialize_in(self, session):
         """Initialize TensorFlow variables in the provided session"""
-        session.run(tf.initialize_variables(self.get_tensorflow_variables()))
+        var_list = self.get_tensorflow_variables()
+
+        tfhu.safe_initialize_in(var_list, session)
 
 class ValidatableLayer(Layer):
     """Validatable Layer
@@ -206,8 +208,8 @@ class FeedForwardLayer(Layer):
         if not self.tf_vars_created:
             self.tf_vars_created = True
 
-            self.tf_weight = Initializer.weight_variable([self.features_in, self.features_out])
-            self.tf_bias = Initializer.bias_variable([self.features_out])
+            self.tf_weight = Initializer.weight_variable([self.features_in, self.features_out], name=self.name)
+            self.tf_bias = Initializer.bias_variable([self.features_out], name=self.name)
 
     def connect(self, tf_input):
         self.set_input(tf_input._shape_as_list()[1])

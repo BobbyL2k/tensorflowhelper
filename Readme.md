@@ -20,14 +20,14 @@ visit https://github.com/BobbyL2k/tensorflowhelper-sample for sample code
 * Session Management
 * High level models
   * FeedForward Neural Network
+* Save and Load models
 
 ## To Do List
 
-* Save and Load models
 * High level models
   * Convolutional Neural Network
 * Visualizing Convolutional Neural Network
-  
+
 ## Credits
 
 * Anuruth Lertpiya (BobbyL2k)
