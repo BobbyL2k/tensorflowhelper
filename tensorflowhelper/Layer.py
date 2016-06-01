@@ -62,6 +62,9 @@ class Layer(object):
 
     def is_initialized_in(self, session):
         """Check if the TensorFlow variables are initialized"""
+        tf_var_list = self.get_tensorflow_variables()
+        if len(tf_var_list) == 0:
+            return True
         try:
             session.run(tf.assert_variables_initialized(self.get_tensorflow_variables()))
             return True
@@ -144,7 +147,11 @@ class OpLayer(ValidatableLayer):
                 of 'func'
         name  -- is for error message
     """
-    def __init__(self, func, tf_variables, shape=None, dtype=None, name=None):
+    def __init__(self, func, tf_variables=None, shape=None, dtype=None, name=None):
+
+        if tf_variables is None:
+            tf_variables = []
+
         ValidatableLayer.__init__(self, name)
         self._connect = func
         self.tf_variables = tf_variables

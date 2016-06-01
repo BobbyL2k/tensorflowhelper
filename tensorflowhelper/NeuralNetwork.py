@@ -168,6 +168,10 @@ class Life(object):
             network = self.neural_network
 
         tf_var_list = network.get_tensorflow_variables()
+        if len(tf_var_list) == 0:
+            raise tfhu.TFHError(
+                "Load model failed because network doesn't have any variable to load")
+
         tfhu.warn_if_initialized(tf_var_list, self.session)
         saver = tf.train.Saver(Life._create_saver_dict(tf_var_list))
         saver.restore(self.session, path)
@@ -185,9 +189,12 @@ class Life(object):
             network = self.neural_network
 
         if not network.is_initialized_in(self.session):
-            raise tfhu.TFHError("Save model failed since network is not initialized")
+            raise tfhu.TFHError("Save model failed because network is not initialized")
 
         tf_var_list = network.get_tensorflow_variables()
+        if len(tf_var_list) == 0:
+            raise tfhu.TFHError(
+                "Save model failed because network doesn't have any variable to save")
         saver = tf.train.Saver(Life._create_saver_dict(tf_var_list))
         save_path = saver.save(self.session, path)
         print("Network {} saved in file: {}".format(network.name, save_path))
