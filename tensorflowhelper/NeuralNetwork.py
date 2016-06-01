@@ -25,12 +25,12 @@ class NeuralNetwork(ValidatableLayer):
 
 
     def get_input_shape(self, *args):
-        if len(self.layers) > 0:
+        if len(self.layers) > 0 and isinstance(self.layers[0], ValidatableLayer):
             return self.layers[0].get_input_shape()
         return None
 
     def get_input_dtype(self, *args):
-        if len(self.layers) > 0:
+        if len(self.layers) > 0 and isinstance(self.layers[0], ValidatableLayer):
             return self.layers[0].get_input_dtype()
         return None
 

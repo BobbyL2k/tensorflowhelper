@@ -24,6 +24,10 @@ class Initializer():
         initial = tf.constant(0.1, shape=shape)
         return tf.Variable(initial, name="{}-bias".format(name))
 
+    @staticmethod
+    def conv_weight_variable(width, height, depth_in, depth_out, name=None):
+        return Initializer.weight_variable([width, height, depth_in, depth_out], name)
+
     # def zeros_variable(shape):
     #     return tf.Variable(tf.zeros(shape))
 
@@ -252,3 +256,70 @@ class ReshapeLayer(Layer):
 
     def get_tensorflow_variables(self):
         return []
+
+class ConvLayer(Layer):
+    """Convolutional Neural Network Layer
+    https://en.wikipedia.org/wiki/Convolutional_neural_network
+
+    Args:
+        features_in  -- number of neuron (or features) in the previous layer
+                        (default None --> will automatically match the previous layer)
+        features_out -- number of neuron in this layer (number of features outputting)
+        dtype        -- data type of the input/output tensor
+                        (default None --> input : matches everything, output : matches input)
+        name         -- is for error message
+    """
+    def __init__(self, depth_out, kernel_width, kernel_height=None, depth_in=None, padding=True, dtype=None, name=None):
+        Layer.__init__(self, name)
+
+        if kernel_height is None:
+            kernel_height = kernel_width
+
+        self.depth_out = depth_out
+        self.kernel_width = kernel_width
+        self.kernel_height = kernel_height
+        self.depth_in = depth_in
+        self.padding = padding
+        self.dtype = dtype
+
+        self.depth_in_is_set = depth_in is not None
+
+        self.tf_vars_created = False
+        self.tf_weight = None
+
+    def set_input(self, depth_in):
+        """Set the number of depth_in
+        Args:
+            depth_in -- number of input features
+        Raises:
+            TFHError    -- if this method is called twice
+        """
+        if self.depth_in_is_set and self.depth_in != depth_in:
+            raise tfhu.TFHError(
+                "{} set_input".format(self.name),
+                "depth_in is set twice and do not Match",
+                "Previous Value : {}".format(self.depth_in),
+                "Current Value : {}".format(depth_in))
+        self.depth_in = depth_in
+
+    def _create_tf_vars(self):
+        """Create TensorFlow Placeholder variable"""
+        if not self.tf_vars_created:
+            self.tf_vars_created = True
+
+            self.tf_weight = Initializer.conv_weight_variable(self.kernel_width, self.kernel_height,
+                                                              self.depth_in, self.depth_out)
+
+    def connect(self, tf_input):
+        self.set_input(tf_input._shape_as_list()[3])
+        tfhu.validate_tf_input(
+            self.name,
+            tf_input,
+            shape=[None, None, None, self.depth_in],
+            dtype=self.dtype)
+        self._create_tf_vars()
+        padding_cmd_str = "SAME" if self.padding else "VALID"
+        return tf.nn.conv2d(tf_input, self.tf_weight, strides=[1, 1, 1, 1], padding=padding_cmd_str)
+
+    def get_tensorflow_variables(self):
+        return [self.tf_weight]
