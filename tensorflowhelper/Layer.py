@@ -180,9 +180,9 @@ class FeedForwardLayer(Layer):
     https://en.wikipedia.org/wiki/Feedforward_neural_network
 
     Args:
+        features_out -- number of neuron in this layer (number of features outputting)
         features_in  -- number of neuron (or features) in the previous layer
                         (default None --> will automatically match the previous layer)
-        features_out -- number of neuron in this layer (number of features outputting)
         dtype        -- data type of the input/output tensor
                         (default None --> input : matches everything, output : matches input)
         name         -- is for error message
@@ -249,7 +249,16 @@ class ReshapeLayer(Layer):
     """
     def __init__(self, shape, name=None):
         Layer.__init__(self, name)
-        self.shape = shape
+        self.shape = ReshapeLayer._cvt_none_to_mone(shape)
+
+    @staticmethod
+    def _cvt_none_to_mone(shape):
+        if isinstance(shape, list):
+            return list(map(ReshapeLayer._cvt_none_to_mone, shape))
+        if shape is None:
+            return -1
+        else:
+            return shape
 
     def connect(self, prevLayerResult):
         return tf.reshape(prevLayerResult, self.shape)
@@ -262,12 +271,16 @@ class ConvLayer(Layer):
     https://en.wikipedia.org/wiki/Convolutional_neural_network
 
     Args:
-        features_in  -- number of neuron (or features) in the previous layer
-                        (default None --> will automatically match the previous layer)
-        features_out -- number of neuron in this layer (number of features outputting)
-        dtype        -- data type of the input/output tensor
-                        (default None --> input : matches everything, output : matches input)
-        name         -- is for error message
+        depth_out     -- number of neuron in this layer (number of features outputting)
+        kernel_width  -- width of the kernel
+        kernel_height -- height of the kernel (default same value as width)
+        depth_in      -- number of neuron (or features) in the previous conv-layer
+                         (default None --> will automatically match the previous layer)
+        padding       -- Apply padding inorder to make the width and height of the output
+                         the same as the input (default True)
+        dtype         -- data type of the input/output tensor
+                         (default None --> input : matches everything, output : matches input)
+        name          -- is for error message
     """
     def __init__(self, depth_out, kernel_width, kernel_height=None, depth_in=None, padding=True, dtype=None, name=None):
         Layer.__init__(self, name)
