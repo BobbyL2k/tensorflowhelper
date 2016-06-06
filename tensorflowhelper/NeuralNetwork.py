@@ -1,5 +1,5 @@
 import tensorflow as tf
-from . import ValidatableLayer
+from .Layer import ValidatableLayer
 
 
 class NeuralNetwork(ValidatableLayer):
