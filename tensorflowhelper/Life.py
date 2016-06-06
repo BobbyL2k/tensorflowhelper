@@ -166,6 +166,10 @@ class Life(object):
         Returns:
             Output from the NeuralNetwork
         """
+
+        if not self.neural_network.is_initialized_in(self.session):
+            raise tfhu.TFHError("Feed model failed because network is not initialized")
+
         return self.session.run(
             self.tfvResult_pipe,
             feed_dict={
@@ -173,6 +177,9 @@ class Life(object):
 
     def train(self, input_layer_value, output_layer_value, process_list=None):
         """Train NeuralNetwork assigned with input and expected output"""
+
+        if not self.neural_network.is_initialized_in(self.session):
+            raise tfhu.TFHError("Train model failed because network is not initialized")
 
         if process_list is None:
             process_list = []

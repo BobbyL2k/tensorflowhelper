@@ -55,6 +55,7 @@ class Layer(object):
     """
     def __init__(self, name):
         self.name = name
+        self._initialized = False
 
     def connect(self, tf_input):
         """Connects the input to tha Layer and returns the output"""
@@ -66,11 +67,14 @@ class Layer(object):
 
     def is_initialized_in(self, session):
         """Check if the TensorFlow variables are initialized"""
+        if self._initialized:
+            return True
         tf_var_list = self.get_tensorflow_variables()
         if len(tf_var_list) == 0:
             return True
         try:
             session.run(tf.assert_variables_initialized(self.get_tensorflow_variables()))
+            self._initialized = True
             return True
         except tf.errors.FailedPreconditionError:
             return False
