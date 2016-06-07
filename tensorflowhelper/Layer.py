@@ -285,6 +285,16 @@ class ConvLayer(Layer):
         dtype         -- data type of the input/output tensor
                          (default None --> input : matches everything, output : matches input)
         name          -- is for error message
+    Note:
+        The following variables if modified and the Layer can NOT be loaded with same model
+            * depth_out
+            * kernel_width
+            * kernel_height
+            * dtype
+            * depth_in
+        The following variables can be modified and the Layer can still be loaded
+            * padding
+            * the input tensor batch_count, width, and height
     """
     def __init__(self, depth_out, kernel_width, kernel_height=None, depth_in=None, padding=True, dtype=None, name=None):
         Layer.__init__(self, name)
