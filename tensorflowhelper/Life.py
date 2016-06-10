@@ -68,15 +68,15 @@ class Life(object):
         self.tfvResult_pipe = self.neural_network.connect(self.tfvInputLayerPlaceholder)
 
         if will_train:
-            tfhu.validate_tf_input(
-                "Life Output",
-                self.tfvResult_pipe,
-                shape=sample_output.shape,
-                dtype=sample_output.dtype)
-
             self.tfvOutputLayerPlaceholder = tf.placeholder(
                 sample_output.dtype,
                 sample_output.shape)
+
+            tfhu.validate_tf_input(
+                "Life Output",
+                self.tfvResult_pipe,
+                shape=self.tfvOutputLayerPlaceholder._shape_as_list(),
+                dtype=self.tfvOutputLayerPlaceholder.dtype)
 
             self.tfvCost = self.cost_function(self.tfvResult_pipe, self.tfvOutputLayerPlaceholder)
 

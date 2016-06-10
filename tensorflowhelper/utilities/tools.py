@@ -19,7 +19,14 @@ def validate(where, describe_elem, expect_elem, got_elem):
         _validate(where, describe_elem, expect_elem, got_elem)
 
 def _validate(where, describe_elem, expect_elem, got_elem):
-    pass_validation = True
+    pass_validation = None
+
+    if isinstance(describe_elem, float):
+        print("Warning describe_elem {} is float, casted to int".format(describe_elem))
+        describe_elem = int(describe_elem)
+    if isinstance(expect_elem, float):
+        print("Warning expect_elem {} is float, casted to int".format(expect_elem))
+        expect_elem = int(expect_elem)
 
     if expect_elem is not None:
         if isinstance(expect_elem, (list, tuple)) and isinstance(got_elem, (list, tuple)):
@@ -27,12 +34,21 @@ def _validate(where, describe_elem, expect_elem, got_elem):
                 try:
                     for exp, got in zip(expect_elem, got_elem):
                         _validate(where, describe_elem, exp, got)
+                    pass_validation = True
                 except TFHError:
                     pass_validation = False
             else: pass_validation = False
 
-        elif type(expect_elem) is type(got_elem) and expect_elem != got_elem:
-            pass_validation = False
+        elif type(expect_elem) == type(got_elem):
+            if expect_elem != got_elem:
+                pass_validation = False
+            else:
+                pass_validation = True
+
+        else: pass_validation = False
+
+    else: pass_validation = True
+
 
     if not pass_validation:
         raise TFHError(
