@@ -23,7 +23,9 @@ class CostFunction:
             TensorFlow variable of the Cross Entropy
         """
         return tf.reduce_mean(
-            -tf.reduce_sum(actual_value * tf.log(hypo), reduction_indices=[1]))
+            -tf.reduce_sum(
+                actual_value * tf.log(tf.clip_by_value(hypo, 1e-10, 1.0)),
+                reduction_indices=[1]))
 
 class Life(object):
     """NeuralNetwork Manager
