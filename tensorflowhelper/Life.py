@@ -34,9 +34,13 @@ class Life(object):
     def __init__(self,
                  neural_network,
                  cost_function=CostFunction.mean_sq_err,
-                 optimizer=tf.train.AdamOptimizer(0.0001)):
+                 optimizer=tf.train.AdamOptimizer(0.0001),
+                 session=None):
 
-        self.session = tf.Session()
+        if session is None:
+            self.session = tf.Session()
+        else:
+            self.session = session
 
         self.neural_network = neural_network
         self.cost_function = cost_function
@@ -161,7 +165,7 @@ class Life(object):
         save_path = saver.save(self.session, path)
         print("Network {} saved in file: {}".format(network.name, save_path))
 
-    def feed(self, input_layer_value):
+    def feed(self, input_layer_value, process_list=None, feed_dict={}):
         """Feed NeuralNetwork with input
         Args:
             input_layer_value -- input for the NeuralNetwork
@@ -169,13 +173,17 @@ class Life(object):
             Output from the NeuralNetwork
         """
 
+        if process_list is None:
+            process_list = self.tfvResult_pipe
+
         if not self.neural_network.is_initialized_in(self.session):
             raise tfhu.TFHError("Feed model failed because network is not initialized")
 
+        feed_dict.update({self.tfvInputLayerPlaceholder: input_layer_value})
+
         return self.session.run(
-            self.tfvResult_pipe,
-            feed_dict={
-                self.tfvInputLayerPlaceholder: input_layer_value})
+            process_list,
+            feed_dict=feed_dict)
 
     def train(self, input_layer_value, output_layer_value, process_list=None):
         """Train NeuralNetwork assigned with input and expected output"""
