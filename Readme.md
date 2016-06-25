@@ -10,7 +10,9 @@ $ git clone https://github.com/BobbyL2k/tensorflowhelper.git
 
 ## Usage
 
-visit https://github.com/BobbyL2k/tensorflowhelper-sample for sample code
+visit [The Wiki](https://github.com/BobbyL2k/tensorflowhelper/wiki) for additional information
+
+visit [Sample Code Repository](https://github.com/BobbyL2k/tensorflowhelper-sample)
 
 ## Features
 
