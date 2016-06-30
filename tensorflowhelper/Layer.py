@@ -28,6 +28,10 @@ class Initializer():
     def conv_weight_variable(width, height, depth_in, depth_out, name=None):
         return Initializer.weight_variable([width, height, depth_in, depth_out], name)
 
+    @staticmethod
+    def conv_bias_variable(depth, name=None):
+        return Initializer.bias_variable([depth], name)
+
     # def zeros_variable(shape):
     #     return tf.Variable(tf.zeros(shape))
 
@@ -350,3 +354,67 @@ class ConvLayer(Layer):
 
     def get_tensorflow_variables(self):
         return [self.tf_weight]
+
+class ConvBiasLayer(Layer):
+    """Bias for Convolutional Neural Network Layer
+    https://en.wikipedia.org/wiki/Convolutional_neural_network
+
+    Args:
+        depth         -- number of neuron (or features) in the previous conv-layer
+                         (default None --> will automatically match the previous layer)
+        dtype         -- data type of the input/output tensor
+                         (default None --> input : matches everything, output : matches input)
+        name          -- is for error message
+    Note:
+        The following variables if modified and the Layer can NOT be loaded with same model
+            * depth
+            * dtype
+        The following variables can be modified and the Layer can still be loaded
+            * the input tensor batch_count, width, and height
+    """
+    def __init__(self, depth=None, dtype=None, name=None):
+        Layer.__init__(self, name)
+
+        self.depth = depth
+        self.dtype = dtype
+
+        self.depth_is_set = depth is not None
+
+        self.tf_vars_created = False
+        self.tf_bias = None
+
+    def set_input(self, depth):
+        """Set the number of depth
+        Args:
+            depth -- number of input features
+        Raises:
+            TFHError    -- if this method is called twice
+        """
+        if self.depth_is_set and self.depth != depth:
+            raise tfhu.TFHError(
+                "{} set_input".format(self.name),
+                "depth is set twice and do not Match",
+                "Previous Value : {}".format(self.depth),
+                "Current Value : {}".format(depth))
+        self.depth = depth
+
+    def _create_tf_vars(self):
+        """Create TensorFlow Placeholder variable"""
+        if not self.tf_vars_created:
+            self.tf_vars_created = True
+
+            self.tf_bias = Initializer.conv_bias_variable(self.depth)
+
+    def connect(self, tf_input):
+        self.set_input(tf_input._shape_as_list()[3])
+        tfhu.validate_tf_input(
+            self.name,
+            tf_input,
+            shape=[None, None, None, self.depth],
+            dtype=self.dtype)
+        self._create_tf_vars()
+        return tf.nn.bias_add(tf_input, self.tf_bias)
+
+    def get_tensorflow_variables(self):
+        return [self.tf_bias]
+
